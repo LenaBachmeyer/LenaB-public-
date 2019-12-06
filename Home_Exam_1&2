@@ -1,0 +1,177 @@
+# Home Assignment 1:
+
+data <- read_csv("https://raw.githubusercontent.com/kekecsz/PSYP13_Data_analysis_class-2019/master/home_sample_1.csv")
+
+summary(data)
+
+model_1 <- lm(pain ~ age + sex, data = data)
+
+model_2 <- lm(pain ~ age + sex + STAI_trait + pain_cat + mindfulness + cortisol_serum + cortisol_saliva, data = data)
+
+summary(model_1)
+summary(model_2)
+
+#------------------------------------- Checking for Outliers -----------------------------------------------------------#
+plot(cooks.distance(model_1))
+
+plot(cooks.distance(model_2))
+
+distance_1 <- cooks.distance(model_1)
+
+distance_2 <- cooks.distance(model_2)
+
+# ------ Saving the outliers into influentiol.-------#
+influential_1 <- as.numeric(names(distance_1)[(distance_1 > 4 * mean(distance_1, na.rm = TRUE))])
+print(influential_1)
+
+influential_2 <- as.numeric(names(distance_2)[(distance_2 > 4 * mean(distance_2, na.rm = TRUE))])
+print(influential_2)
+
+plot(influential_1)
+plot(influential_2)
+
+# We chose to not remove the outliers as spread of data is quite large as is
+
+#---------------------------------------- R^2----------------------------------------------------------------#
+
+summary(model_1)$adj.r.squared # adjacent R^2 to check the % of variance exmplained
+summary(model_2)$adj.r.squared # adjacent R^2 to check the % of variance exmplained
+
+AIC(model_1) # compare the model fit (the smaller AIC, the better the model)
+AIC(model_2) # compare the model fit (the smaller AIC, the better the model)
+
+anova(model_1, model_2) # esidual error and degrees of freedom 
+
+
+#---------------- Regression Equation (Model 2) -------------------#
+summary(model_2)
+y = 1.71 + x1(-0.02) + x2(0.45) + x3(-0.04) + x4(0.10) + x5(-0.28) + x6(-0.07) + x7(0.69)
+
+# x1 = age
+# x2 = sex
+# x3 = STAI_trait
+# x4 = pain_cat
+# x5 = mindfulness
+# x6 = cortisol_serum
+# x7 = cortisol_saliva
+
+
+#------------------------------------- Normality -----------------------------------------------#
+ols_plot_resid_qq(model_2)
+# looks good
+
+ols_test_normality(model_2)
+# Shapiro-Wilk greater than 0.05 = good
+
+#------------------------------------- Liniarity------------------------------------------------#
+plot(model_2) #shows the linear relationship
+
+# smooth horizontal line shows good linear relationship = ours is a litte flawed (may be due to ouliers we kept)
+
+#-------------------------------------- Homoscedasticity ---------------------------------------------#
+
+homogenity <- ols_test_breusch_pagan(model_2)
+print(homogenity)
+# our value is greater than 0.05 = we accept the null hypothesis
+
+#----------------------------------- Multicollinearity ----------------------------------------------# 
+
+ols_vif_tol(model_2) # how much larger the variance is shown to be due to collinearity 
+
+# VIF of 1 = no covariance
+# VIF below 10 = don't need correction
+
+# no covariance to be found, we do not need to correct
+
+#------------------------------------------ Further ----------------------------#
+
+summary(model_1)
+confint(model_1) # Confidence Interval 
+lm.beta(model_1) # Std.Beta values
+
+summary(model_2)
+confint(model_2) # Confidence Interval 
+lm.beta(model_2) # Std.Beta values
+
+#---------------------------------------------------------------------------------------------------------------------------------------#
+
+# Home Assignment 2:
+
+#------------------------------------------- Backward Model -----------------------------------------------------------#
+data <- read.csv("https://raw.githubusercontent.com/kekecsz/PSYP13_Data_analysis_class-2019/master/home_sample_1.csv")
+
+summary(data)
+
+model_0 <- lm(pain ~ age + sex + STAI_trait + pain_cat + mindfulness + cortisol_serum + weight + IQ + household_income, data = data)
+
+step_back <- stepAIC(model_0, direction = "backward")
+
+step_back$anova
+
+backward_model <- lm(pain ~ age + sex + pain_cat + mindfulness + cortisol_serum + weight, data = data)
+
+summary(backward_model)
+
+
+#------------------------------------------- Regression Equation Backward_Model -------------------------------------#
+
+y =  4.27 + x1(-0.05) + x2(0.48) + x3( 0.08) + x4(-0.30) + x5(0.4) + x6(-0.02)
+
+# x1 = age
+# x2 = sex
+# x3 = pain_cat
+# x4 = mindulness
+# x5 = cortisol_serum
+# x6 = weight
+#------------------------------------------ Theory Based Model -----------------------------------------------------#
+
+theory_based_model <- lm(pain ~ age + sex + STAI_trait + pain_cat + mindfulness + cortisol_serum + cortisol_saliva, data = data) #Model from assigment 1
+summary(theory_based_model)
+#------------------------------------------- Model Comparison ------------------------------------------------------#
+
+AIC(theory_based_model)
+AIC(backward_model)
+
+anova(theory_based_model, backward_model)
+
+#------------------------------------------- Model Prediction ---------------------------------------------------------#
+
+data_2 <- read.csv("https://raw.githubusercontent.com/kekecsz/PSYP13_Data_analysis_class-2019/master/home_sample_2.csv")
+
+summary(data_2)
+
+
+pain_prediction_1 <- predict(theory_based_model, newdata = data_2, interval= 'prediction')
+
+pain_prediction_2 <- predict(backward_model, newdata= data_2, interval= 'prediction')
+
+summary(pain_prediction_1)
+summary(pain_prediction_2)
+
+
+#------------------------------------------ Sum of Squared Differences from Mean ------------------------------------------------#
+
+deviation1 <- (data_2$pain - pain_prediction_1)^2
+deviation2 <- (data_2$pain - pain_prediction_2)^2
+
+plot(deviation1)
+plot(deviation2)
+
+SS1 <- sum(deviation1)
+SS2 <- sum(deviation2)
+
+print(SS1)
+print(SS2)
+
+
+# The backward model has a greater sum of squared differences = worse model
+
+#------------------------------------------ Further ----------------------------#
+
+summary(theory_based_model)
+confint(theory_based_model) # Confidence Interval 
+lm.beta(theory_based_model) # Std.Beta values
+
+summary(backward_model)
+confint(backward_model) # Confidence Interval 
+lm.beta(backward_model) # Std.Beta values
